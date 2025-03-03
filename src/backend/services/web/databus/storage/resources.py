@@ -132,6 +132,7 @@ class StorageActivateResource(StorageMeta):
         CollectorPlugin.objects.filter(
             namespace=namespace, plugin_scene__in=[PluginSceneChoices.COLLECTOR.value]
         ).update(storage_changed=True)
+        # default_cluster_config的值有两种，main storage的cluster_id值或者replica write storage的dict
         return (
             int(default_cluster_config.config_value)
             if not isinstance(default_cluster_config.config_value, dict)
