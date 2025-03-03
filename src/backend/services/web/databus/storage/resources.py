@@ -113,17 +113,17 @@ class StorageActivateResource(StorageMeta):
         # 设置默认集群
         namespace = validated_request_data["namespace"]
         if validated_request_data["cluster_mode"] == ClusterMode.MAIN:
-            default_cluster_config = GlobalMetaConfig.set(
+            _ = GlobalMetaConfig.set(
                 DEFAULT_STORAGE_CONFIG_KEY,
                 validated_request_data["cluster_id"],
                 config_level=ConfigLevelChoices.NAMESPACE.value,
                 instance_key=namespace,
             )
         else:
-            default_cluster_config = GlobalMetaConfig.set(
+            _ = GlobalMetaConfig.set(
                 DEFAULT_REPLICA_WRITE_STORAGE_CONFIG_KEY,
                 {"cluster_id": validated_request_data["cluster_id"]}
-                if not validated_request_data['config']
+                if not validated_request_data.get('config')
                 else validated_request_data['config'],
                 config_level=ConfigLevelChoices.NAMESPACE.value,
                 instance_key=namespace,
@@ -132,12 +132,7 @@ class StorageActivateResource(StorageMeta):
         CollectorPlugin.objects.filter(
             namespace=namespace, plugin_scene__in=[PluginSceneChoices.COLLECTOR.value]
         ).update(storage_changed=True)
-        # default_cluster_config的值有两种，main storage的cluster_id值或者replica write storage的dict
-        return (
-            int(default_cluster_config.config_value)
-            if not isinstance(default_cluster_config.config_value, dict)
-            else int(default_cluster_config.config_value["cluster_id"])
-        )
+        return validated_request_data["cluster_id"]
 
 
 class StorageListResource(StorageMeta):
@@ -229,7 +224,7 @@ class CreateStorageResource(StorageMeta):
             validated_request_data["auth_info"]["password"] = asymmetric_cipher.decrypt(password)
         pre_defined = validated_request_data.pop("pre_defined", False)
         if pre_defined:
-            data = validated_request_data['pre_defined_extra_config']["pre_defined_cluster_id"]
+            data = validated_request_data['pre_defined_extra_config']["cluster_id"]
         else:
             data = api.bk_log.create_storage(validated_request_data)
         StorageOperateLog.create(data)

@@ -152,7 +152,10 @@ class SystemInitHandler:
         GlobalMetaConfig.set(EVENT_DORIS_CLUSTER_ID_KEY, cluster_id)
         print("InitDoris GlobalMetaConfig Set Success")
         resource.databus.storage.storage_activate(
-            namespace=settings.DEFAULT_NAMESPACE, cluster_id=cluster_id, cluster_mode=ClusterMode.REPLICA
+            namespace=settings.DEFAULT_NAMESPACE,
+            cluster_id=cluster_id,
+            cluster_mode=ClusterMode.REPLICA,
+            config=doris_config['pre_defined_extra_config'],
         )
         print(f"[InitDoris] Default => {cluster_id}")
 
