@@ -364,6 +364,8 @@ CORS_ALLOW_HEADERS = [
     *os.getenv("BKAPP_CORS_ALLOW_HEADERS", "").split(","),
 ]
 
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "unsafe-none"
+
 # 队列存储时长(天)
 DEFAULT_QUEUE_STORAGE_EXPIRES = int(os.getenv("BKAPP_DEFAULT_QUEUE_STORAGE_EXPIRES", 1))
 # HDFS存储时长(天) -1 表示不限制
@@ -382,13 +384,13 @@ EVENT_KAFKA_SLEEP_TIME = float(os.getenv("BKAPP_EVENT_KAFKA_SLEEP_TIME", 0.5))
 """
 # celery settings
 if IS_USE_CELERY:
-    # INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
-    # INSTALLED_APPS += (
-    #     "django_celery_beat",
-    #     "django_celery_results",
-    # )
+    INSTALLED_APPS = locals().get("INSTALLED_APPS", [])
+    INSTALLED_APPS += (
+        "django_celery_beat",
+        "django_celery_results",
+    )
     CELERY_ENABLE_UTC = True
-    # CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+    CELERYBEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 
 # remove disabled apps
 if locals().get("DISABLED_APPS"):
