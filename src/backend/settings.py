@@ -71,3 +71,13 @@ def load_settings(module_path: str, raise_exception: bool = True):
 
 load_settings(module_path=DJANGO_CONF_MODULE)
 load_settings(module_path=f"services.{DEPLOY_SERVICE}.settings", raise_exception=False)
+
+
+# 屏蔽DRF新版本路由注册的不兼容逻辑
+def is_already_registered(self, new_basename):
+    return False
+
+
+from bk_resource.routers import ResourceRouter  # noqa
+
+ResourceRouter.is_already_registered = is_already_registered
