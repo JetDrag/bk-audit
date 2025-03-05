@@ -83,7 +83,8 @@ dependencies = [
     "pypika==0.48.9",
     "pydantic==2.10.4",
     "kafka-python==2.0.2",
-    "stackprinter==0.2.12"
+    "stackprinter==0.2.12",
+    "jinja2>=3.1.5"
 ]
 requires-python = "==3.11.*"
 readme = "README.md"
