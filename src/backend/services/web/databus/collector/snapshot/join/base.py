@@ -95,6 +95,11 @@ class BaseJoinDataHandler(metaclass=abc.ABCMeta):
     def join_data_type(self):
         pass
 
+    @property
+    @abc.abstractmethod
+    def etl_storage_handler_cls(self):
+        pass
+
     def __init__(self, system_id: str, resource_type_id: str, storage_type: str):
         self.system_id = system_id
         self.system = System.objects.get(system_id=system_id)
@@ -170,7 +175,7 @@ class BaseJoinDataHandler(metaclass=abc.ABCMeta):
         self.snapshot.save()
 
     def create_data_etl_storage(self):
-        etl_storage_handler = JoinDataEtlStorageHandler(
+        etl_storage_handler = self.etl_storage_handler_cls(
             self.snapshot.bkbase_data_id,
             self.system,
             self.resource_type,
@@ -214,6 +219,7 @@ class BasicJoinHandler(BaseJoinDataHandler):
     """基础关联数据处理"""
 
     join_data_type = JoinDataType.BASIC.value
+    etl_storage_handler_cls = JoinDataEtlStorageHandler
 
     def __init__(self, system_id: str, resource_type_id: str, storage_type: str = SnapShotStorageChoices.REDIS.value):
         super().__init__(system_id, resource_type_id, storage_type)
@@ -223,6 +229,7 @@ class AssetHandler(BaseJoinDataHandler):
     """资产数据处理"""
 
     join_data_type = JoinDataType.ASSET.value
+    etl_storage_handler_cls = AssetEtlStorageHandler
 
     def __init__(self, system_id: str, resource_type_id: str, storage_type: str = SnapShotStorageChoices.HDFS.value):
         super().__init__(system_id, resource_type_id, storage_type)
@@ -230,19 +237,6 @@ class AssetHandler(BaseJoinDataHandler):
     def load_collectors(self) -> QuerySet:
         """Asset更新无需更新相关日志采集项，因此直接返回空"""
         return CollectorConfig.objects.none()
-
-    def create_data_etl_storage(self):
-        # 已有清洗链路不做调整
-        if self._get_table_id():
-            logger.info(f"{self.__class__.__name__} Skip EtlStorage; SnapshotID => {self.snapshot.id}")
-            return
-        # 没有清洗链路则创建
-        logger.info(f"{self.__class__.__name__} Create EtlStorage; SnapshotID => {self.snapshot.id}")
-        etl_storage_handler = AssetEtlStorageHandler(
-            self.snapshot.bkbase_data_id, self.system, self.resource_type, self.storage_type
-        )
-        self.snapshot.bkbase_processing_id, self.snapshot.bkbase_table_id = etl_storage_handler.create()
-        self.snapshot.save()
 
     @property
     def result_table_id(self):

@@ -24,13 +24,16 @@ from bk_resource import api, resource
 from bk_resource.settings import bk_resource_settings
 from django.conf import settings
 
-from apps.meta.models import ResourceType, System
+from apps.meta.constants import ConfigLevelChoices
+from apps.meta.models import GlobalMetaConfig, ResourceType, System
 from core.models import get_request_username
 from services.web.databus.constants import (
     ASSET_RT_FORMAT,
+    DEFAULT_REPLICA_WRITE_STORAGE_CONFIG_KEY,
     JOIN_DATA_PHYSICAL_RT_FORMAT,
     JOIN_DATA_RT_FORMAT,
     JsonSchemaFieldType,
+    SnapShotStorageChoices,
 )
 from services.web.databus.exceptions import SchemaEmptyError
 from services.web.databus.storage.handler.redis import RedisHandler
@@ -469,7 +472,16 @@ class AssetEtlStorageHandler(JoinDataEtlStorageHandler):
         return config
 
     def get_storage_cluster(self):
-        return settings.ASSET_RT_STORAGE_CLUSTER
+        if self.storage_type == SnapShotStorageChoices.DORIS.value:
+            replica_config = GlobalMetaConfig.get(
+                DEFAULT_REPLICA_WRITE_STORAGE_CONFIG_KEY,
+                config_level=ConfigLevelChoices.NAMESPACE.value,
+                instance_key=settings.DEFAULT_NAMESPACE,
+            )
+            replica_default_bkbase_cluster_id = replica_config["bkbase_cluster_id"]
+            return replica_default_bkbase_cluster_id
+        else:
+            return settings.ASSET_RT_STORAGE_CLUSTER
 
     def get_storage_expires(self):
         return settings.ASSET_RT_EXPIRE_TIME
