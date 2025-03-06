@@ -113,18 +113,22 @@ class BaseJoinDataHandler(metaclass=abc.ABCMeta):
             bkbase_table_id=None
         )
 
-    def start(self):
+    def start(self, multiple_storage: bool = False):
+        """
+        如果是建立多个存储，则需要独立设置成功标记位
+        """
         try:
             # 创建DATAID
-            self.create_dataid()
+            self.create_data_id()
             # 创建清洗入库
             self.create_data_etl_storage()
             # 更新采集项清洗链路
             self.update_log_clean_link()
             # 更新状态
-            self.update_status(SnapshotRunningStatus.RUNNING.value)
-            self.snapshot.status_msg = ""
-            self.snapshot.save()
+            if not multiple_storage:
+                self.update_status(SnapshotRunningStatus.RUNNING.value)
+                self.snapshot.status_msg = ""
+                self.snapshot.save()
         except Exception as err:  # NOCC:broad-except(需要处理所有错误)
             self.update_status(SnapshotRunningStatus.FAILED.value)
             self.snapshot.status_msg = str(err)
@@ -143,7 +147,7 @@ class BaseJoinDataHandler(metaclass=abc.ABCMeta):
     def update_status(self, status: str) -> None:
         self.snapshot.status = status
 
-    def stop(self):
+    def stop(self, multiple_storage: bool = False):
         # 直接停止采集任务
         params = {
             "bkbase_data_id": self.snapshot.bkbase_data_id,
@@ -154,10 +158,11 @@ class BaseJoinDataHandler(metaclass=abc.ABCMeta):
         }
         api.bk_base.stop_collector(**params)
         # 更新状态
-        self.update_status(SnapshotRunningStatus.CLOSED.value)
-        self.snapshot.save()
+        if not multiple_storage:
+            self.update_status(SnapshotRunningStatus.CLOSED.value)
+            self.snapshot.save()
 
-    def create_dataid(self):
+    def create_data_id(self):
         # 判断是否已有
         logger.info(f"{self.__class__.__name__} Update or Create Collector; SnapshotID => {self.snapshot.id}")
         http_pull_handler = HttpPullHandler(self.system, self.resource_type, self.snapshot, self.join_data_type)
@@ -165,17 +170,25 @@ class BaseJoinDataHandler(metaclass=abc.ABCMeta):
         self.snapshot.save()
 
     def create_data_etl_storage(self):
+        etl_storage_handler = JoinDataEtlStorageHandler(
+            self.snapshot.bkbase_data_id,
+            self.system,
+            self.resource_type,
+            self.storage_type,
+        )
         # 已有清洗链路不做调整
         if self._get_table_id():
             logger.info(f"{self.__class__.__name__} Skip EtlStorage; SnapshotID => {self.snapshot.id}")
-            return
-        # 没有清洗链路则创建
-        logger.info(f"{self.__class__.__name__} Create EtlStorage; SnapshotID => {self.snapshot.id}")
-        etl_storage_handler = JoinDataEtlStorageHandler(
-            self.snapshot.bkbase_data_id, self.system, self.resource_type, self.storage_type
-        )
-        self.snapshot.bkbase_processing_id, self.snapshot.bkbase_table_id = etl_storage_handler.create()
+        else:
+            # 没有清洗链路则创建
+            logger.info(f"{self.__class__.__name__} Create EtlStorage; SnapshotID => {self.snapshot.id}")
+
+            self.snapshot.bkbase_processing_id, self.snapshot.bkbase_table_id = etl_storage_handler.create(
+                clean=True, storage=False
+            )
         self.snapshot.save()
+        # 创建存储入库
+        etl_storage_handler.create(clean=False, storage=True)
 
     def _get_table_id(self) -> str:
         return self.snapshot.bkbase_table_id
@@ -217,9 +230,6 @@ class AssetHandler(BaseJoinDataHandler):
     def load_collectors(self) -> QuerySet:
         """Asset更新无需更新相关日志采集项，因此直接返回空"""
         return CollectorConfig.objects.none()
-
-    def update_status(self, status: str) -> None:
-        self.snapshot.status = status
 
     def create_data_etl_storage(self):
         # 已有清洗链路不做调整

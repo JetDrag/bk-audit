@@ -514,13 +514,15 @@ class ToggleJoinDataResource(CollectorMeta):
                         system_id=snapshot.system_id,
                         resource_type_id=snapshot.resource_type_id,
                         storage_type=storage.storage_type,
-                    ).stop()
+                    ).stop(multiple_storage=True)
                 elif snapshot.join_data_type == JoinDataType.ASSET:
                     AssetHandler(
                         system_id=snapshot.system_id,
                         resource_type_id=snapshot.resource_type_id,
                         storage_type=storage.storage_type,
-                    ).stop()
+                    ).stop(multiple_storage=True)
+            snapshot.status = SnapshotRunningStatus.CLOSED.value
+            snapshot.save()
         snapshot.refresh_from_db()
         return snapshot
 

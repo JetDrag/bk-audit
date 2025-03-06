@@ -46,16 +46,17 @@ class JoinDataEtlStorageHandler:
         self.resource_type_id = resource_type.resource_type_id
         self.storage_type = storage_type
 
-    def create(self):
-        # 创建清洗
-        result = api.bk_base.databus_cleans_post(self.clean_config)
-        start_bkbase_clean(result["result_table_id"], result["processing_id"], get_request_username())
-        processing_id = result["processing_id"]
-        bkbase_table_id = result["result_table_id"]
-
-        # 创建入库
-        api.bk_base.databus_storages_post(self.storage_config)
-
+    def create(self, clean=True, storage=True):
+        processing_id, bkbase_table_id = None, None
+        if clean:
+            # 创建清洗
+            result = api.bk_base.databus_cleans_post(self.clean_config)
+            start_bkbase_clean(result["result_table_id"], result["processing_id"], get_request_username())
+            processing_id = result["processing_id"]
+            bkbase_table_id = result["result_table_id"]
+        if storage:
+            # 创建入库
+            api.bk_base.databus_storages_post(self.storage_config)
         return processing_id, bkbase_table_id
 
     @property
