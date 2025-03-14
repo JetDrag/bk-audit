@@ -193,3 +193,11 @@ class TagFilterHandler(FilterDataHandler):
 
         # 检查通过则返回
         return input_data[0] if is_single else input_data
+
+
+class SystemAdministratorFilterHandler(FilterDataHandler):
+    pass
+
+
+class SystemDiagnosisFilterHandler(FilterDataHandler):
+    pass

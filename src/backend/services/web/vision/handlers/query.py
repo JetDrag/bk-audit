@@ -19,13 +19,45 @@ to the current version of the project delivered to anyone in the future.
 from bk_resource import api
 
 from services.web.vision.constants import KeyVariable, PanelType
-from services.web.vision.handlers.filter import DeptFilterHandler, TagFilterHandler
+from services.web.vision.handlers.filter import (
+    DeptFilterHandler,
+    FilterDataHandler,
+    SystemAdministratorFilterHandler,
+    SystemDiagnosisFilterHandler,
+    TagFilterHandler,
+)
+
+
+def modify_panel_meta(handler: FilterDataHandler, chart_config: dict, vision_data: dict, uid: str):
+    """基于自定义的图表处理器结果，修改面板元数据"""
+    # 获取数据
+    chart_config["json"] = handler.get_data()
+    # 设置默认值
+    chart_config["default"] = chart_config["json"][0]["value"] if chart_config["json"] else []
+    # 替换外层默认值
+    vision_data["filters"][uid] = chart_config["default"]
 
 
 class VisionHandler:
     """
-    审计报表
+    审计报表数据处理器
     """
+
+    def query_meta(self, params: dict) -> dict:
+        return api.bk_vision.query_meta(**params)
+
+    def query_dataset(self, params: dict) -> dict:
+        return api.bk_vision.query_dataset(**params)
+
+    def query_field_data(self, params: dict) -> dict:
+        return api.bk_vision.query_field_data(**params)
+
+    def query_variable_data(self, params: dict) -> dict:
+        return api.bk_vision.query_variable_data(**params)
+
+
+class CommonVisionHandler(VisionHandler):
+    """通用审计报表数据处理器，支持通用组织架构和标签过滤"""
 
     def parse_flag(self, flag: str) -> str:
         if flag == KeyVariable.DEPARTMENT_NAME:
@@ -33,8 +65,7 @@ class VisionHandler:
         return flag
 
     def query_meta(self, params: dict) -> dict:
-        # 重新构造过滤条件
-        vision_data = api.bk_vision.query_meta(**params)
+        vision_data = super().query_meta(params)
         for panel in vision_data["data"]["panels"]:
             category = panel.get("category")
             if category != PanelType.ACTION:
@@ -45,38 +76,46 @@ class VisionHandler:
             match self.parse_flag(chart_config.get("flag")):
                 # 组织架构
                 case KeyVariable.DEPARTMENT:
-                    # 获取数据
-                    chart_config["json"] = DeptFilterHandler().get_data()
-                    # 设置默认值
-                    chart_config["default"] = chart_config["json"][0]["value"] if chart_config["json"] else []
-                    # 替换外层默认值
-                    vision_data["filters"][uid] = chart_config["default"]
+                    modify_panel_meta(DeptFilterHandler(), chart_config, vision_data, uid)
                 # 标签
                 case KeyVariable.TAG:
-                    # 获取数据
-                    chart_config["json"] = TagFilterHandler().get_data()
-                    # 设置默认值
-                    chart_config["default"] = chart_config["json"][0]["value"] if chart_config["json"] else []
-                    # 替换外层默认值
-                    vision_data["filters"][uid] = chart_config["default"]
+                    modify_panel_meta(TagFilterHandler(), chart_config, vision_data, uid)
         return vision_data
 
-    def query_dataset(self, params: dict) -> dict:
-        option = params.get("option", {})
-        # 检测过滤条件是否合法
-        variables = option.get("variables", {})
-        for variable_config in variables:
-            match self.parse_flag(variable_config["flag"]):
+
+class SystemAdministratorVisionHandler(VisionHandler):
+    """系统管理员审计报表数据处理器，支持基于管理员权限的系统过滤"""
+
+    def query_meta(self, params: dict) -> dict:
+        vision_data = super().query_meta(params)
+        for panel in vision_data["data"]["panels"]:
+            category = panel.get("category")
+            if category != PanelType.ACTION:
+                continue
+            # 图表配置
+            uid = panel["uid"]
+            chart_config = panel.get("chartConfig") or {}
+            match chart_config.get("flag"):
                 # 组织架构
-                case KeyVariable.DEPARTMENT:
-                    variable_config["value"] = DeptFilterHandler().check_data(variable_config["value"])
-                # 标签
-                case KeyVariable.TAG:
-                    variable_config["value"] = TagFilterHandler().check_data(variable_config["value"])
-        return api.bk_vision.query_dataset(**params)
+                case KeyVariable.SYSTEM_ID:
+                    modify_panel_meta(SystemAdministratorFilterHandler(), chart_config, vision_data, uid)
+        return vision_data
 
-    def query_field_data(self, params: dict) -> dict:
-        return api.bk_vision.query_field_data(**params)
 
-    def query_variable_data(self, params: dict) -> dict:
-        return api.bk_vision.query_variable_data(**params)
+class SystemDiagnosisVisionHandler(VisionHandler):
+    """系统诊断审计报表数据处理器，支持基于独立诊断权限的系统过滤"""
+
+    def query_meta(self, params: dict) -> dict:
+        vision_data = super().query_meta(params)
+        for panel in vision_data["data"]["panels"]:
+            category = panel.get("category")
+            if category != PanelType.ACTION:
+                continue
+            # 图表配置
+            uid = panel["uid"]
+            chart_config = panel.get("chartConfig") or {}
+            match chart_config.get("flag"):
+                # 组织架构
+                case KeyVariable.SYSTEM_ID:
+                    modify_panel_meta(SystemDiagnosisFilterHandler(), chart_config, vision_data, uid)
+        return vision_data
