@@ -66,6 +66,7 @@ class PluginEtlHandler:
         # 创建合流入库物理表名
         table_id = f"{settings.DEFAULT_BK_BIZ_ID}_{self.get_table_id()}"
         main_storage_params["physical_table_name"] = f"write_{{yyyyMMdd}}_{table_id}"
+        replica_storage_params["physical_table_name"] = f"write_{table_id}"
 
         # 创建入库
         if not self.plugin.has_storage:

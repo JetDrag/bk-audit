@@ -472,7 +472,6 @@ class AssetEtlStorageHandler(JoinDataEtlStorageHandler):
     @property
     def storage_config(self):
         config = super().storage_config
-        config.pop("physical_table_name", "")
         config.update(
             {
                 "config": {"dimension_table": True},
@@ -485,6 +484,8 @@ class AssetEtlStorageHandler(JoinDataEtlStorageHandler):
         )
         if self.storage_type == StorageType.DORIS:
             config["config"] = {"data_model": "primary_table", "is_profiling": False}
+        if self.storage_type == SnapShotStorageChoices.HDFS.value:
+            config.pop("physical_table_name", "")
         return config
 
     def get_storage_cluster(self):
