@@ -505,8 +505,10 @@ class AssetEtlStorageHandler(JoinDataEtlStorageHandler):
         return settings.ASSET_RT_EXPIRE_TIME
 
     @property
-    def physical_table_name(self):
-        return ASSET_PHYSICAL_RT_FORMAT.format(system_id=self.system_id).replace("-", "_")
+    def physical_table_name(self) -> str:
+        return f"mapleleaf_{settings.DEFAULT_BK_BIZ_ID}." + ASSET_PHYSICAL_RT_FORMAT.format(
+            system_id=self.system_id, resource_type_id=self.resource_type_id
+        ).replace("-", "_")
 
     @property
     def json_config(self):
