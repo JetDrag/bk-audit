@@ -29,6 +29,7 @@ from apps.meta.constants import ConfigLevelChoices
 from apps.meta.models import GlobalMetaConfig, ResourceType, System
 from core.models import get_request_username
 from services.web.databus.constants import (
+    ASSET_PHYSICAL_RT_FORMAT,
     ASSET_RT_FORMAT,
     DEFAULT_REPLICA_WRITE_STORAGE_CONFIG_KEY,
     JOIN_DATA_PHYSICAL_RT_FORMAT,
@@ -502,6 +503,10 @@ class AssetEtlStorageHandler(JoinDataEtlStorageHandler):
 
     def get_storage_expires(self):
         return settings.ASSET_RT_EXPIRE_TIME
+
+    @property
+    def physical_table_name(self):
+        return ASSET_PHYSICAL_RT_FORMAT.format(system_id=self.system_id).replace("-", "_")
 
     @property
     def json_config(self):

@@ -83,6 +83,7 @@ JOIN_DATA_PHYSICAL_RT_FORMAT = "bkaudit_join_data_{system_id}"
 JOIN_DATA_RT_FORMAT = "bkaudit_{system_id}_{resource_type_id}"
 JOIN_DATA_RUNNING_WAIT_TIME = 60
 ASSET_RT_FORMAT = "asset_{system_id}_{resource_type_id}"
+ASSET_PHYSICAL_RT_FORMAT = "bkaudit_asset_{system_id}_{resource_type_id}"
 
 DEFAULT_REDIS_TAGS = ["Bk-Audit", "inland", "enable", "usr"]
 
