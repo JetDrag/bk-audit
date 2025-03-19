@@ -329,7 +329,7 @@ def check_join_data():
             content = resp.json()
             result = content.get("result", True)
             http_pull_count = content.get("data", {}).get("count", 0)
-        except Exception as e:
+        except Exception as e:  # NOCC:broad-except(需要处理所有错误)
             # 如果发生异常，将 storage_count 设置为 0，并且 result 设置为 False
             logger.exception("[JoinDataCheckFailed] Error while querying storage: %s", e)
             http_pull_count = 0
@@ -341,17 +341,23 @@ def check_join_data():
                 "sql": count_sql,
                 "prefer_storage": StorageType.DORIS.value,
             },
+            {
+                "sql": count_sql,
+                "prefer_storage": StorageType.HDFS.value,
+            },
         ]
 
         try:
             # 尝试发送请求获取存储中的 count 数据
             bulk_resp = api.bk_base.query_sync.bulk_request(bulk_req_params)
-            count_resp = bulk_resp[0]  # Assuming count_resp is the second item in the response
-            storage_count = count_resp.get("list", [{}])[0].get("count", 0)
-        except Exception as e:
+            doris_count_resp, hdfs_count_resp = bulk_resp
+            doris_storage_count = doris_count_resp.get("list", [{}])[0].get("count", 0)
+            hdfs_storage_count = hdfs_count_resp.get("list", [{}])[0].get("count", 0)
+        except Exception as e:  # NOCC:broad-except(需要处理所有错误)
             # 如果发生异常，将 storage_count 设置为 0，并且 result 设置为 False
             logger.exception("[JoinDataCheckFailed] Error while querying storage: %s", e)
-            storage_count = 0
+            doris_storage_count = 0
+            hdfs_storage_count = 0
             result = False
 
         # 将结果保存到 JoinDataCheckStatistic 表
@@ -361,7 +367,8 @@ def check_join_data():
             join_data_type=join_data_type,
             defaults={
                 "http_pull_count": http_pull_count,
-                "storage_count": storage_count,
+                "doris_storage_count": doris_storage_count,
+                "hdfs_storage_count": hdfs_storage_count,
                 "result": result,
             },
         )

@@ -18,7 +18,8 @@ class Migration(migrations.Migration):
                 ('resource_type_id', models.CharField(max_length=64)),
                 ('join_data_type', models.CharField(max_length=32)),
                 ('http_pull_count', models.IntegerField(default=0)),
-                ('storage_count', models.IntegerField(default=0)),
+                ('doris_storage_count', models.IntegerField(default=0)),
+                ('hdfs_storage_count', models.IntegerField(default=0)),
                 ('result', models.BooleanField(default=False)),
             ],
             options={
