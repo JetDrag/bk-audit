@@ -136,6 +136,7 @@ class OperateRecordModel(models.Model):
     created_by = models.CharField(gettext_lazy("创建者"), max_length=32, default="", null=True, blank=True, db_index=True)
     updated_at = models.DateTimeField(gettext_lazy("更新时间"), blank=True, null=True, db_index=True)
     updated_by = models.CharField(gettext_lazy("修改者"), max_length=32, blank=True, default="", null=True, db_index=True)
+    property = models.JSONField(gettext_lazy("通用属性列"), default=dict)
 
     def save(self, update_record=True, *args, **kwargs):
         """
