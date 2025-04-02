@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('meta', '0011_alter_systemdiagnosisconfig_push_status'),
+        ('meta', '0012_system_system_diagnosis_extra'),
     ]
 
     operations = [
