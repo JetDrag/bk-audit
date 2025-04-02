@@ -1046,6 +1046,38 @@ class RuleAuditWhereSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 gettext("Rule Audit Where can not have condition and conditions at the same time")
             )
+        condition = attrs.get("condition", {})
+        if condition:
+            field = condition.get('field', {})
+            if field and 'aggregate' in field and field['aggregate']:
+                raise serializers.ValidationError(gettext("Field in where condition must have aggregate set to Field"))
+        return attrs
+
+
+class RuleAuditHavingSerializer(RuleAuditWhereSerializer):
+    def to_internal_value(self, instance):
+        """
+        自定义序列化逻辑: 递归解析 conditions
+        """
+
+        ret = super().to_representation(instance)
+
+        # 递归处理 conditions
+        conditions = instance.get('conditions', [])
+        ret['conditions'] = [
+            RuleAuditHavingSerializer(condition, context=self.context).data for condition in conditions
+        ]
+
+        return ret
+
+    def validate(self, attrs):
+        """如果 condition 存在，检查其 field 中的 aggregate"""
+        attrs = super().validate(attrs)
+        condition = attrs.get("condition", {})
+        if condition:
+            field = condition.get('field', {})
+            if field and 'aggregate' in field and not field['aggregate']:
+                raise serializers.ValidationError(gettext("Field in having condition must have aggregate set to True"))
         return attrs
 
 
@@ -1062,6 +1094,7 @@ class RuleAuditSerializer(serializers.Serializer):
         label=gettext_lazy("Rule Audit Select"), child=RuleAuditFieldSerializer(), allow_empty=False
     )
     where = RuleAuditWhereSerializer(label=gettext_lazy("Rule Audit Where"), required=False)
+    having = RuleAuditHavingSerializer(label=gettext_lazy("Rule Audit Having"), required=False)
     schedule_config = ScheduleConfigSerializer(label=gettext_lazy("Rule Audit Schedule Config"), required=False)
 
     def validate(self, attrs):
