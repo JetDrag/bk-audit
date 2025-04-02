@@ -32,6 +32,7 @@ from core.sql.exceptions import TableNotRegisteredError
 from core.sql.model import (
     Condition,
     Field,
+    HavingCondition,
     JoinTable,
     LinkField,
     Order,
@@ -253,7 +254,7 @@ class TestSQLGenerator(TestCase):
         )
         self.assertEqual(str(query), expected_query, f"Expected: {expected_query}, but got: {query}")
 
-    def test_group_by_with_having(self):
+    def test_group_by_with_where(self):
         """测试 GROUP BY 子句"""
         config = SqlConfig(
             select_fields=[
@@ -281,6 +282,60 @@ class TestSQLGenerator(TestCase):
         expected_query = (
             'SELECT COUNT("users"."id") "user_id","users"."country" "user_country" '
             'FROM "users" "users" WHERE "users"."country"=\'Ireland\' GROUP BY "users"."country"'
+        )
+        self.assertEqual(str(query), expected_query, f"Expected: {expected_query}, but got: {query}")
+
+    def test_group_by_with_having(self):
+        """
+        测试在存在聚合字段的情况下，使用 HAVING 子句对聚合结果进行筛选
+        """
+        config = SqlConfig(
+            select_fields=[
+                Field(
+                    table="orders",
+                    raw_name="id",
+                    display_name="count_id",
+                    field_type=FieldType.INT,
+                    aggregate=AggregateType.COUNT,
+                ),
+                Field(
+                    table="orders",
+                    raw_name="status",
+                    display_name="status",
+                    field_type=FieldType.STRING,
+                ),
+            ],
+            from_table=Table(table_name="orders"),
+            group_by=[
+                Field(
+                    table="orders",
+                    raw_name="status",
+                    display_name="status",
+                    field_type=FieldType.STRING,
+                )
+            ],
+            having=HavingCondition(
+                condition=Condition(
+                    field=Field(
+                        table="orders",
+                        raw_name="id",
+                        display_name="count_id",
+                        field_type=FieldType.INT,
+                        aggregate=AggregateType.COUNT,
+                    ),
+                    operator=Operator.GT,
+                    filter=100,
+                )
+            ),
+        )
+        generator = SQLGenerator(self.query_builder)
+        query = generator.generate(config)
+
+        expected_query = (
+            'SELECT COUNT("orders"."id") "count_id","orders"."status" "status" '
+            'FROM "orders" "orders" '
+            'GROUP BY "orders"."status" '
+            'HAVING COUNT("orders"."id")>100'
         )
         self.assertEqual(str(query), expected_query, f"Expected: {expected_query}, but got: {query}")
 
