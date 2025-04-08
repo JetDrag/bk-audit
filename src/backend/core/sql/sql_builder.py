@@ -24,6 +24,7 @@ from pypika.terms import BasicCriterion, EmptyCriterion
 from core.sql.builder import BkBaseTable
 from core.sql.constants import AggregateType, FilterConnector, Operator
 from core.sql.exceptions import (
+    FilterValueError,
     InvalidAggregateTypeError,
     MissingFromOrJoinError,
     TableNotRegisteredError,
@@ -177,14 +178,28 @@ class SQLGenerator:
         if condition.field.aggregate:
             # 如果条件字段是聚合函数，则使用聚合函数处理
             field = self._build_aggregate(condition.field)
+            filter_type = (
+                condition.field.aggregate.result_data_type.python_type or condition.field.field_type.python_type
+            )
         else:
             # 否则，使用普通字段处理
             field = self._get_pypika_field(condition.field)
+            filter_type = condition.field.field_type.python_type
         operator = condition.operator
-        return Operator.handler(operator, field, condition.filter, condition.filters)
+        try:
+            return Operator.handler(
+                operator,
+                field,
+                filter_type(condition.filter) if condition.filter else None,
+                [filter_type(f) for f in condition.filters],
+            )
+        except ValueError:
+            raise FilterValueError(
+                condition.field.raw_name, condition.filter or condition.filters, condition.field.field_type
+            )
 
     def _apply_filter_conditions(self, where_condition: Union[WhereCondition, HavingCondition]) -> BasicCriterion:
-        """递归构建 WHERE/Having 子句"""
+        """递归构建 WHERE/HAVING 子句"""
         sql_condition = EmptyCriterion()
         if where_condition.condition:
             return self.handle_condition(where_condition.condition)
