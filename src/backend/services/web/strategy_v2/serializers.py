@@ -615,38 +615,36 @@ class GetRTMetaRequestSerializer(serializers.Serializer):
     table_id = serializers.CharField(label=gettext_lazy("Table ID"))
 
 
-class GetRTMetaResponseSerializer(serializers.Serializer):
+class GetRTMetaSerializer(serializers.Serializer):
     result_table_name = serializers.CharField()
     bk_biz_id = serializers.IntegerField()
-    created_at = serializers.DateTimeField()
-    sensitivity = serializers.CharField()
-    result_table_name_alias = serializers.CharField()
-    updated_by = serializers.CharField()
-    created_by = serializers.CharField()
+    created_at = serializers.DateTimeField(allow_null=True)
+    sensitivity = serializers.CharField(allow_null=True)
+    result_table_name_alias = serializers.CharField(allow_null=True)
+    updated_by = serializers.CharField(allow_null=True)
+    created_by = serializers.CharField(allow_null=True)
     result_table_id = serializers.CharField()
-    count_freq = serializers.IntegerField()
-    description = serializers.CharField()
-    updated_at = serializers.DateTimeField()
-    generate_type = serializers.CharField()
-    result_table_type = serializers.CharField()
-    processing_type = serializers.CharField()
-    project_id = serializers.IntegerField()
-    platform = serializers.CharField()
-    is_managed = serializers.IntegerField()
-    count_freq_unit = serializers.CharField()
-    data_category = serializers.CharField()
-    project_name = serializers.CharField()
+    count_freq = serializers.IntegerField(allow_null=True)
+    description = serializers.CharField(allow_null=True)
+    updated_at = serializers.DateTimeField(allow_null=True)
+    generate_type = serializers.CharField(allow_null=True)
+    result_table_type = serializers.CharField(allow_null=True)
+    processing_type = serializers.CharField(allow_null=True)
+    project_id = serializers.IntegerField(allow_null=True)
+    platform = serializers.CharField(allow_null=True)
+    is_managed = serializers.IntegerField(allow_null=True)
+    count_freq_unit = serializers.CharField(allow_null=True)
+    data_category = serializers.CharField(allow_null=True)
+    project_name = serializers.CharField(allow_null=True)
 
-    # 使用 ListField 来替代子序列化器
-    fields = serializers.ListField(child=serializers.DictField())
-    storages = serializers.ListField(child=serializers.DictField())
-    tags = serializers.DictField(child=serializers.DictField())
-    managers = serializers.ListField(child=serializers.CharField())
-    viewers = serializers.ListField(child=serializers.CharField())
-
-    # `last_data` 和 `formatted_fields` 为列表，字段结构直接映射为字典
-    last_data = serializers.ListField(child=serializers.DictField())
-    formatted_fields = serializers.ListField(child=serializers.DictField())
+    # 允许为空的 ListFields
+    fields = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
+    storages = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
+    tags = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
+    managers = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
+    viewers = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
+    last_data = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
+    formatted_fields = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
 
 
 class GetRTLastDataRequestSerializer(serializers.Serializer):
