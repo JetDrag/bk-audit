@@ -615,6 +615,48 @@ class GetRTMetaRequestSerializer(serializers.Serializer):
     table_id = serializers.CharField(label=gettext_lazy("Table ID"))
 
 
+class GetRTMetaResponseSerializer(serializers.Serializer):
+    result_table_name = serializers.CharField()
+    bk_biz_id = serializers.IntegerField()
+    created_at = serializers.DateTimeField()
+    sensitivity = serializers.CharField()
+    result_table_name_alias = serializers.CharField()
+    updated_by = serializers.CharField()
+    created_by = serializers.CharField()
+    result_table_id = serializers.CharField()
+    count_freq = serializers.IntegerField()
+    description = serializers.CharField()
+    updated_at = serializers.DateTimeField()
+    generate_type = serializers.CharField()
+    result_table_type = serializers.CharField()
+    processing_type = serializers.CharField()
+    project_id = serializers.IntegerField()
+    platform = serializers.CharField()
+    is_managed = serializers.IntegerField()
+    count_freq_unit = serializers.CharField()
+    data_category = serializers.CharField()
+    project_name = serializers.CharField()
+
+    # 使用 ListField 来替代子序列化器
+    fields = serializers.ListField(child=serializers.DictField())
+    storages = serializers.ListField(child=serializers.DictField())
+    tags = serializers.DictField(child=serializers.DictField())
+    managers = serializers.ListField(child=serializers.CharField())
+    viewers = serializers.ListField(child=serializers.CharField())
+
+    # `last_data` 和 `formatted_fields` 为列表，字段结构直接映射为字典
+    last_data = serializers.ListField(child=serializers.DictField())
+    formatted_fields = serializers.ListField(child=serializers.DictField())
+
+
+class GetRTLastDataRequestSerializer(serializers.Serializer):
+    """
+    Get RT Last Data
+    """
+
+    table_id = serializers.CharField(label=gettext_lazy("Table ID"))
+
+
 class BulkGetRTFieldsRequestSerializer(serializers.Serializer):
     """
     Bulk Get RT Fields

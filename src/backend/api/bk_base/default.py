@@ -340,6 +340,12 @@ class GetRoleUsersList(BkBaseResource):
     url_keys = ["role_id"]
 
 
+class GetSensitivityInfo(BkBaseResource):
+    name = gettext_lazy("获取敏感度信息")
+    action = "/v3/auth/sensitivity/"
+    method = "GET"
+
+
 class QuerySyncResource(BkBaseResource):
     """
     查询数据

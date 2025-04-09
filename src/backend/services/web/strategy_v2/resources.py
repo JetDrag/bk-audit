@@ -20,6 +20,7 @@ import abc
 import datetime
 import json
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from functools import cached_property
 from typing import List, Optional
 
@@ -124,7 +125,9 @@ from services.web.strategy_v2.serializers import (
     GetLinkTableResponseSerializer,
     GetRTFieldsRequestSerializer,
     GetRTFieldsResponseSerializer,
+    GetRTLastDataRequestSerializer,
     GetRTMetaRequestSerializer,
+    GetRTMetaResponseSerializer,
     GetStrategyCommonResponseSerializer,
     GetStrategyDisplayInfoRequestSerializer,
     GetStrategyFieldValueRequestSerializer,
@@ -798,14 +801,24 @@ class BulkGetRTFields(StrategyV2Base):
 class GetRTMeta(StrategyV2Base):
     name = gettext_lazy("Get RT Meta")
     RequestSerializer = GetRTMetaRequestSerializer
-    many_response_data = True
+    ResponseSerializer = GetRTMetaResponseSerializer
 
     def perform_request(self, validated_request_data):
         """获取数据表完整元信息"""
         result_table_id = validated_request_data["table_id"]
-        result = self.get_meta(result_table_id)
-        result.update(self.get_data_manager(result_table_id))
-        result.update(self.get_last_data(result_table_id))
+        futures = []
+
+        # 创建一个线程池来并发执行任务
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            futures.append(executor.submit(self.get_meta, result_table_id))
+            futures.append(executor.submit(self.get_data_manager, result_table_id))
+            futures.append(executor.submit(self.get_sensitivity_info, result_table_id))
+
+            # 获取并合并结果
+            result = {}
+            for future in futures:
+                result.update(future.result())
+
         result["formatted_fields"] = enhance_rt_fields(result["fields"], result_table_id)
         return result
 
@@ -819,6 +832,25 @@ class GetRTMeta(StrategyV2Base):
             'managers': api.bk_base.get_role_users_list(role_id="result_table.manager", scope_id=result_table_id),
             'viewers': api.bk_base.get_role_users_list(role_id="result_table.viewer", scope_id=result_table_id),
         }
+        return result
+
+    def get_sensitivity_info(self, result_table_id):
+        return {
+            "sensitivity_info": api.bk_base.get_sensitivity_info(
+                has_biz_role=True, result_table_id=int(result_table_id.split("_")[0])
+            )
+        }
+
+
+class GetRTLastData(StrategyV2Base):
+    name = gettext_lazy("Get RT Last Data")
+    RequestSerializer = GetRTLastDataRequestSerializer
+    many_response_data = True
+
+    def perform_request(self, validated_request_data):
+        """获取数据表的最新数据"""
+        result_table_id = validated_request_data["table_id"]
+        result = self.get_last_data(result_table_id)
         return result
 
     def get_last_data(self, result_table_id):
