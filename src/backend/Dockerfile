@@ -5,4 +5,5 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y vim
 RUN pip install -U pip -i https://mirrors.tencent.com/pypi/simple
+RUN pip install -U wheel -i https://mirrors.tencent.com/pypi/simple
 RUN pip install -r requirements.txt -i https://mirrors.tencent.com/pypi/simple
