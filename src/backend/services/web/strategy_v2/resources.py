@@ -854,10 +854,14 @@ class GetRTLastData(StrategyV2Base):
         return result
 
     def get_last_data(self, result_table_id):
-        """获取数据表的最新数据。"""
-        resp = api.bk_base.query_sync(
-            sql="select * from {} order by dteventtimestamp desc limit 5".format(result_table_id)
-        )
+        """获取数据表的最新数据，且 thedate 等于当前日期"""
+        # 获取当前日期（格式化为 YYYYMMDD）
+        today = datetime.today().strftime('%Y%m%d')
+
+        # 更新 SQL 查询，添加过滤条件 where thedate = current_date
+        sql = f"SELECT * FROM {result_table_id} WHERE thedate = {today} ORDER BY dteventtimestamp DESC LIMIT 5"
+
+        resp = api.bk_base.query_sync(sql=sql)
         return {"last_data": resp.get("list", [{}])}
 
 
