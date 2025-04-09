@@ -615,7 +615,7 @@ class GetRTMetaRequestSerializer(serializers.Serializer):
     table_id = serializers.CharField(label=gettext_lazy("Table ID"))
 
 
-class GetRTMetaSerializer(serializers.Serializer):
+class GetRTMetaResponseSerializer(serializers.Serializer):
     result_table_name = serializers.CharField()
     bk_biz_id = serializers.IntegerField()
     created_at = serializers.DateTimeField(allow_null=True)
