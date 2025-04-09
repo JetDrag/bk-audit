@@ -854,7 +854,7 @@ class GetRTLastData(StrategyV2Base):
     def get_last_data(self, result_table_id):
         """获取数据表的最新数据，且 thedate 等于当前日期"""
         # 获取当前日期（格式化为 YYYYMMDD）
-        today = datetime.today().strftime('%Y%m%d')
+        today = datetime.now().strftime('%Y%m%d')
 
         # 更新 SQL 查询，添加过滤条件 where thedate = current_date
         sql = f"SELECT * FROM {result_table_id} WHERE thedate = {today} ORDER BY dteventtimestamp DESC LIMIT 5"
