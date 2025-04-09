@@ -615,38 +615,6 @@ class GetRTMetaRequestSerializer(serializers.Serializer):
     table_id = serializers.CharField(label=gettext_lazy("Table ID"))
 
 
-class GetRTMetaResponseSerializer(serializers.Serializer):
-    result_table_name = serializers.CharField()
-    bk_biz_id = serializers.IntegerField()
-    created_at = serializers.DateTimeField(allow_null=True)
-    sensitivity = serializers.CharField(allow_null=True)
-    result_table_name_alias = serializers.CharField(allow_null=True)
-    updated_by = serializers.CharField(allow_null=True)
-    created_by = serializers.CharField(allow_null=True)
-    result_table_id = serializers.CharField()
-    count_freq = serializers.IntegerField(allow_null=True)
-    description = serializers.CharField(allow_null=True)
-    updated_at = serializers.DateTimeField(allow_null=True)
-    generate_type = serializers.CharField(allow_null=True)
-    result_table_type = serializers.CharField(allow_null=True)
-    processing_type = serializers.CharField(allow_null=True)
-    project_id = serializers.IntegerField(allow_null=True)
-    platform = serializers.CharField(allow_null=True)
-    is_managed = serializers.IntegerField(allow_null=True)
-    count_freq_unit = serializers.CharField(allow_null=True)
-    data_category = serializers.CharField(allow_null=True)
-    project_name = serializers.CharField(allow_null=True)
-
-    # 允许为空的 ListFields
-    fields = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
-    storages = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
-    tags = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
-    managers = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
-    viewers = serializers.ListField(child=serializers.CharField(), required=False, allow_empty=True)
-    last_data = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
-    formatted_fields = serializers.ListField(child=serializers.DictField(), required=False, allow_empty=True)
-
-
 class GetRTLastDataRequestSerializer(serializers.Serializer):
     """
     Get RT Last Data

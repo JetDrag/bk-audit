@@ -127,7 +127,6 @@ from services.web.strategy_v2.serializers import (
     GetRTFieldsResponseSerializer,
     GetRTLastDataRequestSerializer,
     GetRTMetaRequestSerializer,
-    GetRTMetaResponseSerializer,
     GetStrategyCommonResponseSerializer,
     GetStrategyDisplayInfoRequestSerializer,
     GetStrategyFieldValueRequestSerializer,
@@ -801,7 +800,6 @@ class BulkGetRTFields(StrategyV2Base):
 class GetRTMeta(StrategyV2Base):
     name = gettext_lazy("Get RT Meta")
     RequestSerializer = GetRTMetaRequestSerializer
-    ResponseSerializer = GetRTMetaResponseSerializer
 
     def perform_request(self, validated_request_data):
         """获取数据表完整元信息"""
