@@ -836,8 +836,8 @@ class GetRTMeta(StrategyV2Base):
 
     def get_sensitivity_info(self, result_table_id):
         return {
-            "sensitivity_info": api.bk_base.get_sensitivity_info(
-                has_biz_role=True, result_table_id=int(result_table_id.split("_")[0])
+            "sensitivity_info": api.bk_base.get_sensitivity_info_via_dataset(
+                data_set_type="result_table", data_set_id=result_table_id
             )
         }
 
