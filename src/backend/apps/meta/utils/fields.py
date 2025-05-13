@@ -735,7 +735,7 @@ TIME = Field(
     option={},
     is_dimension=False,
     is_display=False,
-    property={'spec_field_type': SPEC_FIELD_TYPE_USER},
+    property={'spec_field_type': SPEC_FIELD_TYPE_TIMESTAMP},
 )
 
 CLOUD_ID = Field(
