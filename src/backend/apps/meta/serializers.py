@@ -262,7 +262,13 @@ class SystemInfoResponseSerializer(SystemSerializer):
 
 
 class ResourceTypeSerializer(serializers.ModelSerializer):
-    actions = serializers.SerializerMethodField()
+    # 支持在创建资源类型时快捷创建操作
+    actions = serializers.ListField(
+        child=ActionCreateSerializer(),
+        required=False,
+        write_only=True,
+    )
+    actions_detail = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = ResourceType
@@ -279,7 +285,8 @@ class ResourceTypeSerializer(serializers.ModelSerializer):
             "description",
             "ancestor",
             "ancestors",
-            'actions',
+            "actions",
+            "actions_detail",
         ]
         extra_kwargs = {
             "unique_id": {"required": False, "allow_null": True, "allow_blank": True},
@@ -306,6 +313,19 @@ class ResourceTypeSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    def run_validation(self, data=empty):
+        if isinstance(data, dict) and isinstance(data.get("actions"), list):
+            system_id = data.get("system_id")
+            res_type_id = data.get("resource_type_id")
+            for action in data["actions"]:
+                if system_id is not None:
+                    action.setdefault("system_id", system_id)
+                if res_type_id:
+                    action.setdefault("resource_type_ids", [res_type_id])
+                elif "resource_type_ids" not in action:
+                    action["resource_type_ids"] = []
+        return super().run_validation(data)
+
     def get_actions(self, obj):
         """
         优化后的方法：优先从 context 中获取预加载的数据。
@@ -327,6 +347,16 @@ class ResourceTypeSerializer(serializers.ModelSerializer):
                 ),  # 使用values_list而不是values
             )
         return ActionSerializer(related_actions, many=True).data
+
+    def get_actions_detail(self, obj):
+        return self.get_actions(obj)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # 输出时将 actions_detail 替换为 actions
+        data["actions"] = self.get_actions(instance)
+        data.pop("actions_detail", None)
+        return data
 
 
 class UpdateResourceTypeSerializer(ResourceTypeSerializer):

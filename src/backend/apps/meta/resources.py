@@ -565,6 +565,15 @@ class CreateResourceType(Meta, ModelResource):
     RequestSerializer = ResourceTypeSerializer
     lookup_field = "unique_id"
 
+    def perform_request(self, validated_request_data):
+        actions = validated_request_data.pop("actions", [])
+        validated_request_data.pop("actions_detail", None)
+        with transaction.atomic():
+            resource_type = ResourceType.objects.create(**validated_request_data)
+            for action in actions:
+                resource.meta.create_action(action)
+        return resource_type
+
 
 class BulkCreateResourceType(Meta, Resource):
     """批量创建资源类型, 传入的参数为{"resource_types": [{$ResourceType},{$ResourceType}]}, 单个ResourceType样例详见新建资源类型接口"""
@@ -576,16 +585,25 @@ class BulkCreateResourceType(Meta, Resource):
     many_response_data = True
 
     def perform_request(self, validated_request_data):
-        resource_types = [ResourceType(**resource_type) for resource_type in validated_request_data["resource_types"]]
-        system_ids = {resource_type.system_id for resource_type in resource_types}
+        resource_types = []
+        actions_map = []
+        for rt_data in validated_request_data["resource_types"]:
+            actions = rt_data.pop("actions", [])
+            rt_data.pop("actions_detail", None)
+            rt = ResourceType(**rt_data)
+            resource_types.append(rt)
+            actions_map.append(actions)
+        system_ids = {rt.system_id for rt in resource_types}
         for p in chain.from_iterable(
             SystemPermissionHandler.system_edit_permissions(lambda: system_id) for system_id in system_ids
         ):
             p.has_permission(None, None)
         with transaction.atomic():
-            for resource_type in resource_types:
-                resource_type.save()
-        return ResourceType.objects.filter(pk__in=[resource_type.pk for resource_type in resource_types])
+            for rt, acts in zip(resource_types, actions_map):
+                rt.save()
+                for action in acts:
+                    resource.meta.create_action(action)
+        return ResourceType.objects.filter(pk__in=[rt.pk for rt in resource_types])
 
 
 class UpdateResourceType(Meta, ModelResource):
