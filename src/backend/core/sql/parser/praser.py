@@ -1,4 +1,5 @@
 import numbers
+import re
 from itertools import chain
 from typing import Any, List, Optional, Set
 
@@ -52,24 +53,39 @@ class SqlQueryAnalysis:
         if not self.original_sql or not self.original_sql.strip():
             return
 
+        # 将自定义的 ${name} 形式的变量预处理为 sqlglot 能识别的 @name 形式
+        var_pattern = re.compile(r"\$\{(\w+)\}")
+        self._var_brace_mapping = {m.group(1): m.group(0) for m in var_pattern.finditer(self.original_sql)}
+        sql_for_parsing = var_pattern.sub(lambda m: f"@{m.group(1)}", self.original_sql)
+
         try:
-            self._parsed_expression = sqlglot.parse_one(self.original_sql, read=self.dialect)
+            self._parsed_expression = sqlglot.parse_one(sql_for_parsing, read=self.dialect)
         except sqlglot.errors.ParseError as e:
             raise SQLParseError(f"SQL解析失败: {e}") from e
 
         # 1. 提取引用的表 (Extract referenced tables)
+        cte_names = {cte.alias_or_name for cte in self._parsed_expression.find_all(exp.CTE)}
         for table_exp in self._parsed_expression.find_all(exp.Table):
-            self.referenced_tables.append(Table(table_name=table_exp.name))
+            table_name = table_exp.name
+            if table_name in cte_names:
+                continue
+            self.referenced_tables.append(Table(table_name=table_name))
 
         # 2. 提取SQL命名变量 (Extract SQL named variables)
         extracted_var_raw_names: Set[str] = set()
         for var_node in chain(
             self._parsed_expression.find_all(exp.Var), self._parsed_expression.find_all(exp.Placeholder)
         ):
-            raw_name = var_node.name
-            if "?" == raw_name:
+            name = var_node.name
+            if name == "?":
                 raise SQLParseError("不支持匿名变量")
-            elif raw_name not in extracted_var_raw_names:
+            raw_name = self._var_brace_mapping.get(name)
+            if raw_name is None:
+                if isinstance(var_node, exp.Var):
+                    raw_name = f"@{name}"
+                else:
+                    raw_name = f":{name}"
+            if raw_name not in extracted_var_raw_names:
                 self.sql_variables.append(SqlVariable(raw_name=raw_name))
                 extracted_var_raw_names.add(raw_name)
             else:
