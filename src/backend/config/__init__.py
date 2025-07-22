@@ -33,7 +33,7 @@ APP_CODE = os.getenv("BKPAAS_APP_ID", "bk_audit")
 # 应用用于调用云 API 的 Secret
 SECRET_KEY = get_env_or_raise("BKPAAS_APP_SECRET")
 # SaaS运行版本，如非必要请勿修改
-RUN_VER = get_env_or_raise("BKPAAS_ENGINE_REGION")
+RUN_VER = get_env_or_raise("BKPAAS_ENGINE_REGION", "ieod")
 if RUN_VER == "default":
     RUN_VER = "open"
 
