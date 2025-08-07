@@ -17,11 +17,16 @@ to the current version of the project delivered to anyone in the future.
 """
 
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 
 from apps.meta.models import (
     Action,
     CustomField,
     DataMap,
+    EnumMappingCollection,
+    EnumMappingCollectionRelation,
+    EnumMappingEntity,
     Field,
     GlobalMetaConfig,
     Namespace,
@@ -180,3 +185,28 @@ class SystemDiagnosisConfigAdmin(admin.ModelAdmin):
     def error_exist(self, obj):
         """错误状态标记"""
         return bool(obj.push_error_message)
+
+
+@admin.register(EnumMappingCollection)
+class EnumMappingCollectionAdmin(admin.ModelAdmin):
+    list_display = ["collection_id"]
+    search_fields = ["collection_id"]
+
+
+@admin.register(EnumMappingEntity)
+class EnumMappingEntityAdmin(admin.ModelAdmin):
+    list_display = ["collection_link", "key", "name"]
+    list_filter = ["collection"]
+    search_fields = ["key", "name"]
+
+    @admin.display(description="collection")
+    def collection_link(self, obj):
+        url = reverse('admin:meta_enummappingcollection_change', args=(obj.collection.id,))
+        return format_html('<a href="{}">{}</a>', url, obj.collection.collection_id)
+
+
+@admin.register(EnumMappingCollectionRelation)
+class EnumMappingCollectionRelationAdmin(admin.ModelAdmin):
+    list_display = ["collection_id", "related_type", "related_object_id"]
+    list_filter = ["related_type"]
+    search_fields = ["collection_id", "related_object_id"]
