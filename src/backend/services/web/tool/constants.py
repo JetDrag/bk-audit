@@ -202,4 +202,4 @@ class BkVisionConfig(BaseModel):
     """
 
     uid: str  # BK Vision 图表ID
-    input_variable: List[BKVisionInputVariable]  # 输入变量
+    input_variable: List[BKVisionInputVariable] = PydanticField(default_factory=list)  # 输入变量
