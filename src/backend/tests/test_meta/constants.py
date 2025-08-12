@@ -569,6 +569,15 @@ GLOBAL_CHOICES = {
         {"id": "multiselect", "name": "下拉列表"},
     ],
     "TargetValueType": [{"id": "fixed_value", "name": "固定值"}, {"id": "field", "name": "字段"}],
+    "BKVisionFieldCategory": [
+        {"id": "button", "name": "按钮"},
+        {"id": "cascader", "name": "级联选择器"},
+        {"id": "inputer", "name": "输入框"},
+        {"id": "radios", "name": "单选按钮组"},
+        {"id": "selector", "name": "选择器"},
+        {"id": "time-picker", "name": "时间选择器"},
+        {"id": "time-ranger", "name": "时间范围选择器"},
+    ],
 }
 
 SYSTEM_DIAGNOSIS_PUSH_TEMPLATE = """{
