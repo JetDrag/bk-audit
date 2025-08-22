@@ -42,6 +42,7 @@ from apps.permission.handlers.drf import wrapper_permission_field
 from core.models import get_request_username
 from core.sql.parser.praser import SqlQueryAnalysis
 from core.utils.page import paginate_data
+from services.web.common.caller_permission import should_skip_permission_from
 from services.web.strategy_v2.models import StrategyTool
 from services.web.tool.constants import ToolTypeEnum
 from services.web.tool.executor.tool import ToolExecutorFactory
@@ -493,7 +494,9 @@ class ExecuteTool(ToolBase):
                     ],
                     "page": 1,
                     "page_size": 100
-                }
+                },
+                "caller_resource_type": "risk",
+                "caller_resource_id": "R123"
             }
             ```
         不同的变量下的输入格式:
@@ -564,7 +567,9 @@ class ExecuteTool(ToolBase):
             ```json
             {
                 "uid": "api_tool_123",
-                "params": {}
+                "params": {},
+                "caller_resource_type": "risk",
+                "caller_resource_id": "R123"
             }
             ```
         response:
@@ -576,6 +581,13 @@ class ExecuteTool(ToolBase):
                 "tool_type": "bk_vision"
             }
             ```
+    3. 权限上下文（可选）
+        - 可额外携带以下字段时，系统将基于调用方资源上下文进行权限判断：
+            - caller_resource_type：调用方资源类型（当前支持：risk）
+            - caller_resource_id：调用方资源实例 ID（如风险ID）
+        - 行为说明：
+            - 命中且有权限：跳过原有工具权限校验，直接执行
+            - 命中但无权限：返回标准权限异常（包含可申请信息）
     """
 
     name = gettext_lazy("工具执行")
@@ -593,8 +605,11 @@ class ExecuteTool(ToolBase):
         tool: Tool = Tool.last_version_tool(uid=uid)
         if not tool:
             raise Tool.DoesNotExist()
+
+        # 特殊权限分支：当来自调用方上下文（目前支持 risk）时，校验其权限，命中则跳过原有工具权限校验
+        skip_permission = should_skip_permission_from(validated_request_data, get_request_username())
         executor = ToolExecutorFactory(sql_analyzer_cls=SqlQueryAnalysis).create_from_tool(tool)
-        data = executor.execute(params).model_dump()
+        data = executor.execute(params, skip_permission=skip_permission).model_dump()
         recent_tool_usage_manager.record_usage(get_request_username(), uid)
         return {"data": data, "tool_type": tool.tool_type}
 
