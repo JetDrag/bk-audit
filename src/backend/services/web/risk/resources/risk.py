@@ -124,6 +124,8 @@ from services.web.risk.serializers import (
     ListRiskTagsRespSerializer,
     ManualEventSerializer,
     ReopenRiskReqSerializer,
+    RetrieveRiskStrategyInfoAPIGWRequestSerializer,
+    RetrieveRiskStrategyInfoAPIGWResponseSerializer,
     RetrieveRiskStrategyInfoResponseSerializer,
     RetryAutoProcessReqSerializer,
     RiskExportReqSerializer,
@@ -195,15 +197,15 @@ class RetrieveRisk(RiskMeta):
 
         try:
             resp = (
-                EventHandler.search_event(
-                    namespace=settings.DEFAULT_NAMESPACE,
-                    start_time=search_start,
-                    end_time=search_end,
-                    page=1,
-                    page_size=page_size,
-                    manual_event_id=manual_event_id_param,
-                )
-                or {}
+                    EventHandler.search_event(
+                        namespace=settings.DEFAULT_NAMESPACE,
+                        start_time=search_start,
+                        end_time=search_end,
+                        page=1,
+                        page_size=page_size,
+                        manual_event_id=manual_event_id_param,
+                    )
+                    or {}
             )
         except Exception as err:  # NOCC:broad-except(需要兜底，详情接口不应因查询失败报错)
             logger.warning(
@@ -237,6 +239,27 @@ class RetrieveRiskStrategyInfo(RiskMeta):
         risk: Risk = get_object_or_404(Risk, risk_id=validated_request_data["risk_id"])
         strategy = Strategy.objects.filter(strategy_id=risk.strategy_id).first()
         return strategy or {}
+
+
+class RetrieveRiskStrategyInfoAPIGW(RiskMeta):
+    name = gettext_lazy("获取风险策略信息(APIGW)")
+    RequestSerializer = RetrieveRiskStrategyInfoAPIGWRequestSerializer
+    ResponseSerializer = RetrieveRiskStrategyInfoAPIGWResponseSerializer
+    audit_action = None
+
+    def perform_request(self, validated_request_data):
+        from core.utils import tools as core_tools
+
+        core_tools.get_app_info()
+        risk: Risk = get_object_or_404(Risk, risk_id=validated_request_data["risk_id"])
+        strategy = Strategy.objects.filter(strategy_id=risk.strategy_id).first()
+        if not strategy:
+            return {}
+        prohibit_enum_mappings = validated_request_data.get("prohibit_enum_mappings", True)
+        serializer = RetrieveRiskStrategyInfoAPIGWResponseSerializer(
+            strategy, prohibit_enum_mappings=prohibit_enum_mappings
+        )
+        return serializer.data
 
 
 class RetrieveRiskAPIGW(RetrieveRisk):
@@ -328,7 +351,7 @@ class ListRisk(RiskMeta):
         }
 
     def _filter_queryset_by_event_data_fields(
-        self, queryset: QuerySet, event_filters: List[Dict[str, Any]]
+            self, queryset: QuerySet, event_filters: List[Dict[str, Any]]
     ) -> QuerySet:
         if not event_filters:
             return queryset
@@ -379,10 +402,10 @@ class ListRisk(RiskMeta):
         return cleaned
 
     def _collect_duplicate_fields_for_source(
-        self,
-        source_map: Dict[str, Set[str]],
-        source: str,
-        configs: Optional[Sequence[Dict[str, Any]]],
+            self,
+            source_map: Dict[str, Set[str]],
+            source: str,
+            configs: Optional[Sequence[Dict[str, Any]]],
     ) -> None:
         if not configs:
             return
@@ -393,12 +416,12 @@ class ListRisk(RiskMeta):
             source_map[source].add(field_name)
 
     def retrieve_via_bkbase(
-        self,
-        base_queryset: QuerySet,
-        request,
-        order_field: str,
-        event_filters: List[Dict[str, Any]],
-        thedate_range: Optional[Tuple[str, str]] = None,
+            self,
+            base_queryset: QuerySet,
+            request,
+            order_field: str,
+            event_filters: List[Dict[str, Any]],
+            thedate_range: Optional[Tuple[str, str]] = None,
     ):
         order_field_name = order_field.lstrip("-")
         order_direction = "DESC" if order_field.startswith("-") else "ASC"
@@ -579,9 +602,9 @@ class ListRisk(RiskMeta):
         return ".".join(parts + [cls.STORAGE_SUFFIX])
 
     def _get_risk_event_table_reference(
-        self,
-        expression_builder: Optional[BkBaseQueryExpressionBuilder] = None,
-        table_map: Optional[Dict[str, str]] = None,
+            self,
+            expression_builder: Optional[BkBaseQueryExpressionBuilder] = None,
+            table_map: Optional[Dict[str, str]] = None,
     ) -> str:
         resolved_table_map = table_map or self._get_bkbase_table_map()
         builder = expression_builder or BkBaseQueryExpressionBuilder(
@@ -931,7 +954,7 @@ class ReopenRisk(RiskMeta):
         ReOpen(risk_id=risk.risk_id, operator=get_request_username()).run(
             new_operators=validated_request_data["new_operators"],
             description=gettext("%s 重开单据，指定处理人 %s")
-            % (get_request_username(), ";".join(validated_request_data["new_operators"])),
+                        % (get_request_username(), ";".join(validated_request_data["new_operators"])),
         )
         setattr(risk, "instance_origin_data", origin_data)
         self.add_audit_instance_to_context(instance=RiskAuditInstance(risk))

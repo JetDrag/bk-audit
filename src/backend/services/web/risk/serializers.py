@@ -396,7 +396,8 @@ class ListRiskRequestSerializer(serializers.Serializer):
     risk_label = serializers.CharField(label=gettext_lazy("Risk Label"), allow_blank=True, required=False)
     use_bkbase = serializers.BooleanField(label=gettext_lazy("是否通过BKBase查询"), required=False, default=False)
     order_field = serializers.CharField(
-        label=gettext_lazy("排序字段"), required=False, allow_null=True, allow_blank=True, help_text="risk_level:根据风险等级排序"
+        label=gettext_lazy("排序字段"), required=False, allow_null=True, allow_blank=True,
+        help_text="risk_level:根据风险等级排序"
     )
     order_type = serializers.ChoiceField(
         label=gettext_lazy("排序方式"),
@@ -420,15 +421,16 @@ class ListRiskRequestSerializer(serializers.Serializer):
         if normalized_order_field.startswith("event_data."):
             if not event_filters:
                 raise serializers.ValidationError(gettext("关联事件字段排序需同时指定事件筛选条件"))
-            event_field_name = normalized_order_field[len("event_data.") :].strip()
+            event_field_name = normalized_order_field[len("event_data."):].strip()
             filter_fields = {(item.get("field") or "").strip() for item in event_filters if isinstance(item, dict)}
             filter_fields_with_prefix = {f"event_data.{field}" for field in filter_fields if field}
             if (
-                event_field_name
-                and event_field_name not in filter_fields
-                and normalized_order_field not in filter_fields_with_prefix
+                    event_field_name
+                    and event_field_name not in filter_fields
+                    and normalized_order_field not in filter_fields_with_prefix
             ):
-                raise serializers.ValidationError(gettext("关联事件字段排序需在筛选条件中包含字段：%s") % event_field_name)
+                raise serializers.ValidationError(
+                    gettext("关联事件字段排序需在筛选条件中包含字段：%s") % event_field_name)
         # 排序
         # 兼容：前端传入 risk_level 作为排序字段时，转换为 strategy__risk_level
         if data.get("order_field") == Strategy.risk_level.field.name:
@@ -727,7 +729,8 @@ class ListRiskRuleReqSerializer(serializers.Serializer):
     name = serializers.CharField(label=gettext_lazy("Rule Name"), required=False)
     updated_by = serializers.CharField(label=gettext_lazy("Update User"), required=False)
     is_enabled = serializers.CharField(label=gettext_lazy("Is Enabled"), required=False)
-    order_field = serializers.CharField(label=gettext_lazy("排序字段"), required=False, allow_null=True, allow_blank=True)
+    order_field = serializers.CharField(label=gettext_lazy("排序字段"), required=False, allow_null=True,
+                                        allow_blank=True)
     order_type = serializers.ChoiceField(
         label=gettext_lazy("排序方式"),
         required=False,
@@ -824,7 +827,8 @@ class ListProcessApplicationsReqSerializer(serializers.Serializer):
     name = serializers.CharField(required=False)
     updated_by = serializers.CharField(required=False)
     is_enabled = serializers.CharField(required=False)
-    order_field = serializers.CharField(label=gettext_lazy("排序字段"), required=False, allow_null=True, allow_blank=True)
+    order_field = serializers.CharField(label=gettext_lazy("排序字段"), required=False, allow_null=True,
+                                        allow_blank=True)
     order_type = serializers.ChoiceField(
         label=gettext_lazy("排序方式"),
         required=False,
@@ -893,6 +897,11 @@ class GetRiskFieldsByStrategyResponseSerializer(serializers.Serializer):
     unique = serializers.BooleanField(default=False)
 
 
+class RetrieveRiskStrategyInfoAPIGWRequestSerializer(serializers.Serializer):
+    risk_id = serializers.CharField()
+    prohibit_enum_mappings = serializers.BooleanField(required=False, default=True)
+
+
 class RetrieveRiskStrategyInfoResponseSerializer(serializers.ModelSerializer):
     event_basic_field_configs = serializers.ListField(
         label=gettext_lazy("Event Basic Field Configs"), child=EventFieldSerializer(), required=False, allow_empty=True
@@ -935,6 +944,56 @@ class RetrieveRiskStrategyInfoResponseSerializer(serializers.ModelSerializer):
             # 兼容历史数据
             if config["field_name"] == EventMappingFields.RAW_EVENT_ID.field_name:
                 config["description"] = str(RAW_EVENT_ID_REMARK)
+        return data
+
+
+class EventFieldAPIGWSerializer(EventFieldSerializer):
+    enum_mappings = serializers.JSONField(required=False, allow_null=True)
+
+
+class RetrieveRiskStrategyInfoAPIGWResponseSerializer(RetrieveRiskStrategyInfoResponseSerializer):
+    event_basic_field_configs = serializers.ListField(
+        label=gettext_lazy("Event Basic Field Configs"),
+        child=EventFieldAPIGWSerializer(),
+        required=False,
+        allow_empty=True,
+    )
+    event_data_field_configs = serializers.ListField(
+        label=gettext_lazy("Event Data Field Configs"),
+        child=EventFieldAPIGWSerializer(),
+        required=False,
+        allow_empty=True,
+    )
+    event_evidence_field_configs = serializers.ListField(
+        label=gettext_lazy("Event Evidence Field Configs"),
+        child=EventFieldAPIGWSerializer(),
+        required=False,
+        allow_empty=True,
+    )
+    risk_meta_field_config = serializers.ListField(
+        label=gettext_lazy("Risk Meta Field Config"),
+        child=EventFieldAPIGWSerializer(),
+        required=False,
+        allow_empty=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.prohibit_enum_mappings = kwargs.pop("prohibit_enum_mappings", False)
+        super().__init__(*args, **kwargs)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not self.prohibit_enum_mappings:
+            return data
+        for field_key in (
+                "event_basic_field_configs",
+                "event_data_field_configs",
+                "event_evidence_field_configs",
+                "risk_meta_field_config",
+        ):
+            for field_config in data.get(field_key, []):
+                if isinstance(field_config, dict):
+                    field_config.pop("enum_mappings", None)
         return data
 
 

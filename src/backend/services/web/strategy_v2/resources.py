@@ -238,8 +238,8 @@ class StrategyV2Base(AuditMixinResource, abc.ABC):
         判断请求中是否显式携带可用的 SQL
         """
 
-        sql_value = validated_request_data.get("sql", Empty())
-        return sql_value not in [Empty(), None, ""]
+        sql_value = validated_request_data.get("sql", Empty)
+        return sql_value not in [Empty, None, ""]
 
     @staticmethod
     def get_base_control_type(strategy_type: str) -> Optional[str]:
@@ -290,11 +290,11 @@ class StrategyV2Base(AuditMixinResource, abc.ABC):
             raise NotSupportSourceType(source_type=source_type, support_source_types=support_source_types)
 
     def update_enum_mappings(
-        self,
-        enum_mapping: dict,
-        strategy_id: int,
-        field_name: str,
-        field_category: str,
+            self,
+            enum_mapping: dict,
+            strategy_id: int,
+            field_name: str,
+            field_category: str,
     ):
         """
         Generate immutable collection_id based on strategy_id, field_category, and field_name,
@@ -479,8 +479,8 @@ class UpdateStrategy(StrategyV2Base):
         tag_names = validated_request_data.pop("tags", [])
         # check control
         if (
-            validated_request_data["strategy_type"] == StrategyType.MODEL
-            and strategy.control_id != validated_request_data["control_id"]
+                validated_request_data["strategy_type"] == StrategyType.MODEL
+                and strategy.control_id != validated_request_data["control_id"]
         ):
             raise ControlChangeError()
         # save strategy
@@ -635,7 +635,7 @@ class ListStrategyAll(StrategyV2Base):
 
     def perform_request(self, validated_request_data):
         if not ActionPermission(
-            actions=[ActionEnum.LIST_STRATEGY, ActionEnum.LIST_RISK, ActionEnum.EDIT_RISK]
+                actions=[ActionEnum.LIST_STRATEGY, ActionEnum.LIST_RISK, ActionEnum.EDIT_RISK]
         ).has_permission(request=get_local_request(), view=self):
             return []
         strategies: List[Strategy] = Strategy.objects.exclude(source=StrategySource.SYSTEM)
@@ -755,7 +755,7 @@ class RetryStrategy(StrategyV2Base):
         # try update
         controller_cls = self.get_base_control_type(strategy.strategy_type)
         need_update = strategy.backend_data and (
-            strategy.backend_data.get("id") or strategy.backend_data.get("flow_id")
+                strategy.backend_data.get("id") or strategy.backend_data.get("flow_id")
         )
         # 更新处理人
         strategy.updated_by = get_request_username()
@@ -797,11 +797,11 @@ class ControlVersionJudge(StrategyJudge):
 
     def judge(self, strategy) -> bool:
         if any(
-            [
-                strategy.strategy_type != StrategyType.MODEL.value,
-                not strategy.control_id,
-                not strategy.control_version,
-            ]
+                [
+                    strategy.strategy_type != StrategyType.MODEL.value,
+                    not strategy.control_id,
+                    not strategy.control_version,
+                ]
         ):
             return False
         return self.controls.get(strategy.control_id, strategy.control_version) > strategy.control_version
@@ -822,11 +822,11 @@ class LinkTableVersionJudge(StrategyJudge):
 
     def judge(self, strategy) -> bool:
         if any(
-            [
-                strategy.strategy_type != StrategyType.RULE.value,
-                not strategy.link_table_uid,
-                not strategy.link_table_version,
-            ]
+                [
+                    strategy.strategy_type != StrategyType.RULE.value,
+                    not strategy.link_table_uid,
+                    not strategy.link_table_version,
+                ]
         ):
             return False
         return self.link_tables.get(strategy.link_table_uid, 0) > strategy.link_table_version
@@ -877,12 +877,12 @@ class ListStrategyTags(StrategyV2Base):
         tag_count.sort(key=lambda tag: [lazy_pinyin(tag["tag_name"].lower(), errors="ignore"), tag["tag_name"].lower()])
         # add has update
         tag_count = [
-            {
-                "tag_name": str(HAS_UPDATE_TAG_NAME),
-                "tag_id": HAS_UPDATE_TAG_ID,
-                "strategy_count": len(resource.strategy_v2.list_has_update_strategy()),
-            }
-        ] + tag_count
+                        {
+                            "tag_name": str(HAS_UPDATE_TAG_NAME),
+                            "tag_id": HAS_UPDATE_TAG_ID,
+                            "strategy_count": len(resource.strategy_v2.list_has_update_strategy()),
+                        }
+                    ] + tag_count
         # response
         return tag_count
 
@@ -896,12 +896,12 @@ class ListStrategyFields(StrategyV2Base):
     def perform_request(self, validated_request_data):
         # check permission
         if not ActionPermission(
-            actions=[
-                ActionEnum.CREATE_STRATEGY,
-                ActionEnum.LIST_STRATEGY,
-                ActionEnum.EDIT_STRATEGY,
-                ActionEnum.DELETE_STRATEGY,
-            ]
+                actions=[
+                    ActionEnum.CREATE_STRATEGY,
+                    ActionEnum.LIST_STRATEGY,
+                    ActionEnum.EDIT_STRATEGY,
+                    ActionEnum.DELETE_STRATEGY,
+                ]
         ).has_permission(request=get_local_request(), view=self):
             return []
         # load log field
@@ -1021,12 +1021,12 @@ class GetStrategyFieldValue(StrategyV2Base):
     def perform_request(self, validated_request_data):
         # check permission
         if not ActionPermission(
-            actions=[
-                ActionEnum.CREATE_STRATEGY,
-                ActionEnum.LIST_STRATEGY,
-                ActionEnum.EDIT_STRATEGY,
-                ActionEnum.DELETE_STRATEGY,
-            ]
+                actions=[
+                    ActionEnum.CREATE_STRATEGY,
+                    ActionEnum.LIST_STRATEGY,
+                    ActionEnum.EDIT_STRATEGY,
+                    ActionEnum.DELETE_STRATEGY,
+                ]
         ).has_permission(request=get_local_request(), view=self):
             return []
         handler = FieldValueHandler(
@@ -1222,7 +1222,7 @@ class GetEventFieldsConfig(StrategyV2Base):
         ]
 
     def get_risk_meta_field_config(
-        self, strategy: Optional[Strategy], risk: Optional[Risk], has_permission: bool
+            self, strategy: Optional[Strategy], risk: Optional[Risk], has_permission: bool
     ) -> List[EventInfoField]:
         """
         风险元字段配置（共17项），与 event_basic_field_configs 保持相同数据结构
@@ -1240,7 +1240,7 @@ class GetEventFieldsConfig(StrategyV2Base):
         ]
 
     def get_event_data_field_configs(
-        self, strategy: Optional[Strategy], risk: Optional[Risk], has_permission: bool
+            self, strategy: Optional[Strategy], risk: Optional[Risk], has_permission: bool
     ) -> List[EventInfoField]:
         """
         事件数据字段
@@ -1282,7 +1282,7 @@ class GetEventFieldsConfig(StrategyV2Base):
         return list(field_dict.values())
 
     def get_event_evidence_field_configs(
-        self, strategy: Optional[Strategy], risk: Optional[Risk], has_permission: bool
+            self, strategy: Optional[Strategy], risk: Optional[Risk], has_permission: bool
     ) -> List[EventInfoField]:
         """
         事件证据字段
@@ -1600,14 +1600,14 @@ class ListLinkTableTags(LinkTableBase):
         tag_count.sort(key=lambda tag: [lazy_pinyin(tag["tag_name"].lower(), errors="ignore"), tag["tag_name"].lower()])
         # add no tags
         tag_count = [
-            {
-                "tag_name": str(NO_TAG_NAME),
-                "tag_id": NO_TAG_ID,
-                "link_table_count": LinkTable.list_max_version_link_table()
-                .exclude(uid__in=LinkTableTag.objects.values_list("link_table_uid").distinct())
-                .count(),
-            }
-        ] + tag_count
+                        {
+                            "tag_name": str(NO_TAG_NAME),
+                            "tag_id": NO_TAG_ID,
+                            "link_table_count": LinkTable.list_max_version_link_table()
+                            .exclude(uid__in=LinkTableTag.objects.values_list("link_table_uid").distinct())
+                            .count(),
+                        }
+                    ] + tag_count
         # response
         return tag_count
 
