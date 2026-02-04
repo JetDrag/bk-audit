@@ -918,6 +918,11 @@ paths:
           type: string
           required: true
           description: 工具名称
+        - in: query
+          name: namespace
+          type: string
+          required: true
+          description: 命名空间, 默认为 default
       responses:
         '200':
           description: 成功
